@@ -3,7 +3,6 @@ package cobrakai_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	ck "github.com/bep/cobrakai"
@@ -19,7 +18,6 @@ func TestCobraKai(t *testing.T) {
 		fooBazCommand = &testComand2{name: "foo_baz"}
 	)
 
-	os.Args = []string{"hugo", "foo", "--localFlagName", "foo_local", "--persistentFlagName", "foo_persistent"}
 	c := qt.New(t)
 	r, err := ck.R(
 		&testComand1{name: "hugo"},
@@ -33,7 +31,8 @@ func TestCobraKai(t *testing.T) {
 	// This can be anything, just used to make sure the same context is passed all the way.
 	type key string
 	ctx := context.WithValue(context.Background(), key("foo"), "bar")
-	cdeer, err := r.Execute(ctx)
+	args := []string{"foo", "--localFlagName", "foo_local", "--persistentFlagName", "foo_persistent"}
+	cdeer, err := r.Execute(ctx, args)
 	c.Assert(err, qt.IsNil)
 	c.Assert(cdeer.Command.Name(), qt.Equals, "foo")
 	tc := cdeer.Command.(*testComand1)
@@ -41,9 +40,9 @@ func TestCobraKai(t *testing.T) {
 	c.Assert(tc.localFlagName, qt.Equals, "foo_local")
 	c.Assert(tc.persistentFlagName, qt.Equals, "foo_persistent")
 
-	os.Args = []string{"hugo", "foo", "foo_baz", "--localFlagName", "foo_local2", "--persistentFlagName", "foo_persistent2"}
+	args = []string{"foo", "foo_baz", "--localFlagName", "foo_local2", "--persistentFlagName", "foo_persistent2"}
 	ctx = context.WithValue(context.Background(), key("bar"), "baz")
-	cdeer2, err := r.Execute(ctx)
+	cdeer2, err := r.Execute(ctx, args)
 	c.Assert(err, qt.IsNil)
 	c.Assert(cdeer2.Command.Name(), qt.Equals, "foo_baz")
 	tc2 := cdeer2.Command.(*testComand2)

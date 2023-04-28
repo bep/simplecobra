@@ -11,8 +11,8 @@ type root struct {
 	c *Commandeer
 }
 
-// Execute executes the root command and returns the commandeer that was executed.
-func (r *root) Execute(ctx context.Context) (*Commandeer, error) {
+func (r *root) Execute(ctx context.Context, args []string) (*Commandeer, error) {
+	r.c.CobraCommand.SetArgs(args)
 	cobraCommand, err := r.c.CobraCommand.ExecuteContextC(ctx)
 	if err != nil {
 		return nil, err
@@ -69,8 +69,9 @@ func (c *Commandeer) compile() error {
 }
 
 // Executer is the execution entry point.
+// The args are usually filled with os.Args[1:].
 type Executer interface {
-	Execute(ctx context.Context) (*Commandeer, error)
+	Execute(ctx context.Context, args []string) (*Commandeer, error)
 }
 
 // Commander is the interface that must be implemented by all commands.
