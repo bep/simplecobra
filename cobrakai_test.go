@@ -21,9 +21,11 @@ func TestCobraKai(t *testing.T) {
 
 	c := qt.New(t)
 	r, err := cobrakai.R(
-		&testComand1{name: "hugo"},
-		cobrakai.C(fooCommand,
-			cobrakai.C(fooBazCommand),
+		&testComand1{name: "hugo"}, // The root command.
+		cobrakai.C(
+			fooCommand,
+			cobrakai.C(
+				fooBazCommand),
 		),
 		cobrakai.C(barCommand),
 	)

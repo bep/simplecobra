@@ -98,7 +98,7 @@ func R(command Commander, wcs ...WithCommandeer) (Executer, error) {
 }
 
 // C creates nested commands.
-func C(command Commander, wcs ...WithCommandeer) func(*Commandeer) {
+func C(command Commander, wcs ...WithCommandeer) WithCommandeer {
 	return func(parent *Commandeer) {
 		cd := &Commandeer{
 			Command: command,
