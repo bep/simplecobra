@@ -7,6 +7,20 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// Executer is the execution entry point.
+// The args are usually filled with os.Args[1:].
+type Executer interface {
+	Execute(ctx context.Context, args []string) (*Commandeer, error)
+}
+
+// Commander is the interface that must be implemented by all commands.
+type Commander interface {
+	Name() string
+	Run(ctx context.Context, args []string) error
+	AddFlagsLocal(*pflag.FlagSet)
+	AddFlagsPersistent(*pflag.FlagSet)
+}
+
 type root struct {
 	c *Commandeer
 }
@@ -35,11 +49,9 @@ func (r *root) Execute(ctx context.Context, args []string) (*Commandeer, error) 
 
 // Commandeer holds the state of a command and its subcommands.
 type Commandeer struct {
-	Command     Commander
-	commandeers []*Commandeer
-
-	// compiled
+	Command      Commander
 	CobraCommand *cobra.Command
+	commandeers  []*Commandeer
 }
 
 func (c *Commandeer) compile() error {
@@ -51,8 +63,8 @@ func (c *Commandeer) compile() error {
 			return c.Command.Run(cmd.Context(), args)
 		},
 	}
-	// THere's a LocalFlags set in Cobra which one would beliee would be the right place to put these flags,
-	// but theat doesn't work and there's several related open issues.
+	// There's a LocalFlags set in Cobra which one would believe would be the right place to put these flags,
+	// but that doesn't work and there's several related open issues.
 	// This is how the docs say to do it and also where Hugo puts local flags.
 	c.Command.AddFlagsLocal(c.CobraCommand.Flags())
 	c.Command.AddFlagsPersistent(c.CobraCommand.PersistentFlags())
@@ -66,20 +78,6 @@ func (c *Commandeer) compile() error {
 	}
 
 	return nil
-}
-
-// Executer is the execution entry point.
-// The args are usually filled with os.Args[1:].
-type Executer interface {
-	Execute(ctx context.Context, args []string) (*Commandeer, error)
-}
-
-// Commander is the interface that must be implemented by all commands.
-type Commander interface {
-	Name() string
-	Run(ctx context.Context, args []string) error
-	AddFlagsLocal(*pflag.FlagSet)
-	AddFlagsPersistent(*pflag.FlagSet)
 }
 
 // WithCommandeer allows chaining of commandeers.
@@ -110,4 +108,31 @@ func C(command Commander, wcs ...WithCommandeer) func(*Commandeer) {
 			wc(cd)
 		}
 	}
+}
+
+// SimpleCommand creates a simple command that does not take any flags.
+func SimpleCommand(name string, run func(ctx context.Context, args []string) error) Commander {
+	return &simpleCommand{
+		name: name,
+		run:  run,
+	}
+}
+
+type simpleCommand struct {
+	name string
+	run  func(ctx context.Context, args []string) error
+}
+
+func (s *simpleCommand) Name() string {
+	return s.name
+}
+
+func (s *simpleCommand) Run(ctx context.Context, args []string) error {
+	return s.run(ctx, args)
+}
+
+func (s *simpleCommand) AddFlagsLocal(*pflag.FlagSet) {
+}
+
+func (s *simpleCommand) AddFlagsPersistent(*pflag.FlagSet) {
 }

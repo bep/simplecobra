@@ -3,9 +3,10 @@ package cobrakai_test
 import (
 	"context"
 	"fmt"
+	"log"
 	"testing"
 
-	ck "github.com/bep/cobrakai"
+	"github.com/bep/cobrakai"
 	qt "github.com/frankban/quicktest"
 	"github.com/spf13/pflag"
 )
@@ -19,12 +20,12 @@ func TestCobraKai(t *testing.T) {
 	)
 
 	c := qt.New(t)
-	r, err := ck.R(
+	r, err := cobrakai.R(
 		&testComand1{name: "hugo"},
-		ck.C(fooCommand,
-			ck.C(fooBazCommand),
+		cobrakai.C(fooCommand,
+			cobrakai.C(fooBazCommand),
 		),
-		ck.C(barCommand),
+		cobrakai.C(barCommand),
 	)
 	c.Assert(err, qt.IsNil)
 
@@ -49,6 +50,28 @@ func TestCobraKai(t *testing.T) {
 	c.Assert(tc2.ctx, qt.Equals, ctx)
 	c.Assert(tc2.localFlagName, qt.Equals, "foo_local2")
 	c.Assert(tc.persistentFlagName, qt.Equals, "foo_persistent2")
+
+}
+
+func ExampleSimpleCommand() {
+	r, err := cobrakai.R(
+		// If you need flags, implement cobrakai.Commander.
+		cobrakai.SimpleCommand("root", func(ctx context.Context, args []string) error { fmt.Print("run root "); return nil }),
+		cobrakai.C(cobrakai.SimpleCommand("sub1", func(ctx context.Context, args []string) error { fmt.Print("run sub1"); return nil })),
+		cobrakai.C(cobrakai.SimpleCommand("sub2", func(ctx context.Context, args []string) error { fmt.Print("run sub2"); return nil })),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err := r.Execute(context.Background(), []string{""}); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := r.Execute(context.Background(), []string{"sub1"}); err != nil {
+		log.Fatal(err)
+	}
+	// Output: run root run sub1
 
 }
 
