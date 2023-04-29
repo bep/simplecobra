@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 // Executer is the execution entry point.
@@ -17,8 +16,7 @@ type Executer interface {
 type Commander interface {
 	Name() string
 	Run(ctx context.Context, args []string) error
-	AddFlagsLocal(*pflag.FlagSet)
-	AddFlagsPersistent(*pflag.FlagSet)
+	WithCobraCommand(*cobra.Command) error
 }
 
 type root struct {
@@ -56,18 +54,14 @@ type Commandeer struct {
 
 func (c *Commandeer) compile() error {
 	c.CobraCommand = &cobra.Command{
-		Use:   c.Command.Name(),
-		Short: "TODO",
-		Long:  "TODO",
+		Use: c.Command.Name(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return c.Command.Run(cmd.Context(), args)
 		},
 	}
-	// There's a LocalFlags set in Cobra which one would believe would be the right place to put these flags,
-	// but that doesn't work and there's several related open issues.
-	// This is how the docs say to do it and also where Hugo puts local flags.
-	c.Command.AddFlagsLocal(c.CobraCommand.Flags())
-	c.Command.AddFlagsPersistent(c.CobraCommand.PersistentFlags())
+
+	// This is where the flags, short and long description etc. are added
+	c.Command.WithCobraCommand(c.CobraCommand)
 
 	// Add commands recursively.
 	for _, cc := range c.commandeers {
@@ -123,16 +117,14 @@ type simpleCommand struct {
 	run  func(ctx context.Context, args []string) error
 }
 
-func (s *simpleCommand) Name() string {
-	return s.name
+func (c *simpleCommand) Name() string {
+	return c.name
 }
 
-func (s *simpleCommand) Run(ctx context.Context, args []string) error {
-	return s.run(ctx, args)
+func (c *simpleCommand) Run(ctx context.Context, args []string) error {
+	return c.run(ctx, args)
 }
 
-func (s *simpleCommand) AddFlagsLocal(*pflag.FlagSet) {
-}
-
-func (s *simpleCommand) AddFlagsPersistent(*pflag.FlagSet) {
+func (c *simpleCommand) WithCobraCommand(cmd *cobra.Command) error {
+	return nil
 }

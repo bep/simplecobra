@@ -8,7 +8,7 @@ import (
 
 	"github.com/bep/cobrakai"
 	qt "github.com/frankban/quicktest"
-	"github.com/spf13/pflag"
+	"github.com/spf13/cobra"
 )
 
 func TestCobraKai(t *testing.T) {
@@ -95,12 +95,14 @@ func (c *testComand1) Name() string {
 	return c.name
 }
 
-func (c *testComand1) AddFlagsLocal(flags *pflag.FlagSet) {
-	flags.StringVar(&c.localFlagName, "localFlagName", "", "set localFlagName")
-}
+func (c *testComand1) WithCobraCommand(cmd *cobra.Command) error {
+	localFlags := cmd.Flags()
+	persistentFlags := cmd.PersistentFlags()
 
-func (c *testComand1) AddFlagsPersistent(flags *pflag.FlagSet) {
-	flags.StringVar(&c.persistentFlagName, "persistentFlagName", "", "set persistentFlagName")
+	localFlags.StringVar(&c.localFlagName, "localFlagName", "", "set localFlagName")
+	persistentFlags.StringVar(&c.persistentFlagName, "persistentFlagName", "", "set persistentFlagName")
+
+	return nil
 }
 
 type testComand2 struct {
@@ -120,10 +122,8 @@ func (c *testComand2) Name() string {
 	return c.name
 }
 
-func (c *testComand2) AddFlagsLocal(flags *pflag.FlagSet) {
-	flags.StringVar(&c.localFlagName, "localFlagName", "", "set localFlagName for testCommand2")
-}
-
-func (c *testComand2) AddFlagsPersistent(flags *pflag.FlagSet) {
-
+func (c *testComand2) WithCobraCommand(cmd *cobra.Command) error {
+	localFlags := cmd.Flags()
+	localFlags.StringVar(&c.localFlagName, "localFlagName", "", "set localFlagName for testCommand2")
+	return nil
 }
