@@ -1,4 +1,4 @@
-package cobrakai_test
+package simplecobra_test
 
 import (
 	"context"
@@ -6,17 +6,17 @@ import (
 	"log"
 	"testing"
 
-	"github.com/bep/cobrakai"
+	"github.com/bep/simplecobra"
 	qt "github.com/frankban/quicktest"
 	"github.com/spf13/cobra"
 )
 
 func testCommands() *rootCommand {
 	return &rootCommand{name: "root",
-		commands: []cobrakai.Commander{
+		commands: []simplecobra.Commander{
 			&lvl1Command{name: "foo"},
 			&lvl1Command{name: "bar",
-				commands: []cobrakai.Commander{
+				commands: []simplecobra.Commander{
 					&lvl2Command{name: "baz"},
 				},
 			},
@@ -25,12 +25,12 @@ func testCommands() *rootCommand {
 
 }
 
-func TestCobraKai(t *testing.T) {
+func TestSimplecobra(t *testing.T) {
 	c := qt.New(t)
 
 	rootCmd := testCommands()
 
-	x, err := cobrakai.New(rootCmd)
+	x, err := simplecobra.New(rootCmd)
 	c.Assert(err, qt.IsNil)
 	// This can be anything, just used to make sure the same context is passed all the way.
 	type key string
@@ -80,49 +80,49 @@ func TestErrors(t *testing.T) {
 	c := qt.New(t)
 
 	c.Run("unknown similar command", func(c *qt.C) {
-		x, err := cobrakai.New(testCommands())
+		x, err := simplecobra.New(testCommands())
 		c.Assert(err, qt.IsNil)
 		_, err = x.Execute(context.Background(), []string{"fooo"})
 		c.Assert(err, qt.Not(qt.IsNil))
 		c.Assert(err.Error(), qt.Contains, "unknown")
 		c.Assert(err.Error(), qt.Contains, "Did you mean this?")
-		c.Assert(cobrakai.IsCommandError(err), qt.Equals, true)
+		c.Assert(simplecobra.IsCommandError(err), qt.Equals, true)
 	})
 
 	c.Run("unknown similar sub command", func(c *qt.C) {
-		x, err := cobrakai.New(testCommands())
+		x, err := simplecobra.New(testCommands())
 		c.Assert(err, qt.IsNil)
 		_, err = x.Execute(context.Background(), []string{"bar", "bazz"})
 		c.Assert(err, qt.Not(qt.IsNil))
 		c.Assert(err.Error(), qt.Contains, "unknown")
 		c.Assert(err.Error(), qt.Contains, "Did you mean this?")
-		c.Assert(cobrakai.IsCommandError(err), qt.Equals, true)
+		c.Assert(simplecobra.IsCommandError(err), qt.Equals, true)
 	})
 
 	c.Run("unknown flag", func(c *qt.C) {
-		x, err := cobrakai.New(testCommands())
+		x, err := simplecobra.New(testCommands())
 		c.Assert(err, qt.IsNil)
 		_, err = x.Execute(context.Background(), []string{"bar", "--unknown"})
 		c.Assert(err, qt.Not(qt.IsNil))
 		c.Assert(err.Error(), qt.Contains, "unknown")
-		c.Assert(cobrakai.IsCommandError(err), qt.Equals, true)
+		c.Assert(simplecobra.IsCommandError(err), qt.Equals, true)
 	})
 
 }
 
 func Example() {
 	rootCmd := &rootCommand{name: "root",
-		commands: []cobrakai.Commander{
+		commands: []simplecobra.Commander{
 			&lvl1Command{name: "foo"},
 			&lvl1Command{name: "bar",
-				commands: []cobrakai.Commander{
+				commands: []simplecobra.Commander{
 					&lvl2Command{name: "baz"},
 				},
 			},
 		},
 	}
 
-	x, err := cobrakai.New(rootCmd)
+	x, err := simplecobra.New(rootCmd)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -156,14 +156,14 @@ type rootCommand struct {
 	ctx context.Context
 
 	// Sub commands.
-	commands []cobrakai.Commander
+	commands []simplecobra.Commander
 }
 
-func (c *rootCommand) Commands() []cobrakai.Commander {
+func (c *rootCommand) Commands() []simplecobra.Commander {
 	return c.commands
 }
 
-func (c *rootCommand) Init(*cobrakai.Commandeer) error {
+func (c *rootCommand) Init(*simplecobra.Commandeer) error {
 	c.persistentFlagNameC = c.persistentFlagName + "_rootCommand_compiled"
 	c.localFlagNameC = c.localFlagName + "_rootCommand_compiled"
 	return nil
@@ -196,16 +196,16 @@ type lvl1Command struct {
 
 	rootCmd *rootCommand
 
-	commands []cobrakai.Commander
+	commands []simplecobra.Commander
 
 	ctx context.Context
 }
 
-func (c *lvl1Command) Commands() []cobrakai.Commander {
+func (c *lvl1Command) Commands() []simplecobra.Commander {
 	return c.commands
 }
 
-func (c *lvl1Command) Init(cd *cobrakai.Commandeer) error {
+func (c *lvl1Command) Init(cd *simplecobra.Commandeer) error {
 	c.localFlagNameC = c.localFlagName + "_lvl1Command_compiled"
 	c.rootCmd = cd.Root.Command.(*rootCommand)
 	return nil
@@ -235,11 +235,11 @@ type lvl2Command struct {
 	parentCmd *lvl1Command
 }
 
-func (c *lvl2Command) Commands() []cobrakai.Commander {
+func (c *lvl2Command) Commands() []simplecobra.Commander {
 	return nil
 }
 
-func (c *lvl2Command) Init(cd *cobrakai.Commandeer) error {
+func (c *lvl2Command) Init(cd *simplecobra.Commandeer) error {
 	c.rootCmd = cd.Root.Command.(*rootCommand)
 	c.parentCmd = cd.Parent.Command.(*lvl1Command)
 	return nil

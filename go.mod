@@ -1,4 +1,4 @@
-module github.com/bep/cobrakai
+module github.com/bep/simplecobra
 
 go 1.20
 

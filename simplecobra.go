@@ -1,4 +1,4 @@
-package cobrakai
+package simplecobra
 
 import (
 	"context"
