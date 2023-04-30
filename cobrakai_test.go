@@ -11,10 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestCobraKai(t *testing.T) {
-	c := qt.New(t)
-
-	rootCmd := &rootCommand{name: "root",
+func testCommands() *rootCommand {
+	return &rootCommand{name: "root",
 		commands: []cobrakai.Commander{
 			&lvl1Command{name: "foo"},
 			&lvl1Command{name: "bar",
@@ -24,6 +22,13 @@ func TestCobraKai(t *testing.T) {
 			},
 		},
 	}
+
+}
+
+func TestCobraKai(t *testing.T) {
+	c := qt.New(t)
+
+	rootCmd := testCommands()
 
 	x, err := cobrakai.New(rootCmd)
 	c.Assert(err, qt.IsNil)
@@ -71,6 +76,40 @@ func TestCobraKai(t *testing.T) {
 
 }
 
+func TestErrors(t *testing.T) {
+	c := qt.New(t)
+
+	c.Run("unknown similar command", func(c *qt.C) {
+		x, err := cobrakai.New(testCommands())
+		c.Assert(err, qt.IsNil)
+		_, err = x.Execute(context.Background(), []string{"fooo"})
+		c.Assert(err, qt.Not(qt.IsNil))
+		c.Assert(err.Error(), qt.Contains, "unknown")
+		c.Assert(err.Error(), qt.Contains, "Did you mean this?")
+		c.Assert(cobrakai.IsCommandError(err), qt.Equals, true)
+	})
+
+	c.Run("unknown similar sub command", func(c *qt.C) {
+		x, err := cobrakai.New(testCommands())
+		c.Assert(err, qt.IsNil)
+		_, err = x.Execute(context.Background(), []string{"bar", "bazz"})
+		c.Assert(err, qt.Not(qt.IsNil))
+		c.Assert(err.Error(), qt.Contains, "unknown")
+		c.Assert(err.Error(), qt.Contains, "Did you mean this?")
+		c.Assert(cobrakai.IsCommandError(err), qt.Equals, true)
+	})
+
+	c.Run("unknown flag", func(c *qt.C) {
+		x, err := cobrakai.New(testCommands())
+		c.Assert(err, qt.IsNil)
+		_, err = x.Execute(context.Background(), []string{"bar", "--unknown"})
+		c.Assert(err, qt.Not(qt.IsNil))
+		c.Assert(err.Error(), qt.Contains, "unknown")
+		c.Assert(cobrakai.IsCommandError(err), qt.Equals, true)
+	})
+
+}
+
 func Example() {
 	rootCmd := &rootCommand{name: "root",
 		commands: []cobrakai.Commander{
@@ -83,12 +122,11 @@ func Example() {
 		},
 	}
 
-	args := []string{"bar", "baz", "--localFlagName", "baz_local", "--persistentFlagName", "baz_persistent"}
 	x, err := cobrakai.New(rootCmd)
 	if err != nil {
 		log.Fatal(err)
 	}
-	cd, err := x.Execute(context.Background(), args)
+	cd, err := x.Execute(context.Background(), []string{"bar", "baz", "--localFlagName", "baz_local", "--persistentFlagName", "baz_persistent"})
 	if err != nil {
 		log.Fatal(err)
 	}
