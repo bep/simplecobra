@@ -2,6 +2,9 @@ package cobrakai
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -26,14 +29,8 @@ type Commander interface {
 	Commands() []Commander
 }
 
-// Executer is the execution entry point.
-// The args are usually filled with os.Args[1:].
-type Executer interface {
-	Execute(ctx context.Context, args []string) (*Commandeer, error)
-}
-
 // New creates a new Executer from the command tree in Commander.
-func New(rootCmd Commander) (Executer, error) {
+func New(rootCmd Commander) (*Exec, error) {
 	rootCd := &Commandeer{
 		Command: rootCmd,
 	}
@@ -62,7 +59,7 @@ func New(rootCmd Commander) (Executer, error) {
 		return nil, err
 	}
 
-	return &root{c: rootCd}, nil
+	return &Exec{c: rootCd}, nil
 
 }
 
@@ -95,15 +92,29 @@ func (c *Commandeer) init() error {
 	return initc(cd)
 }
 
+type runErr struct {
+	err error
+}
+
+func (r *runErr) Error() string {
+	return fmt.Sprintf("run error: %v", r.err)
+}
+
 func (c *Commandeer) compile() error {
 	c.CobraCommand = &cobra.Command{
 		Use: c.Command.Name(),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return c.Command.Run(cmd.Context(), args)
+			if err := c.Command.Run(cmd.Context(), args); err != nil {
+				return &runErr{err: err}
+			}
+			return nil
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return c.init()
 		},
+		SilenceErrors:              true,
+		SilenceUsage:               true,
+		SuggestionsMinimumDistance: 2,
 	}
 
 	// This is where the flags, short and long description etc. are added
@@ -120,28 +131,108 @@ func (c *Commandeer) compile() error {
 	return nil
 }
 
-type root struct {
+// Exec provides methods to execute the command tree.
+type Exec struct {
 	c *Commandeer
 }
 
-func (r *root) Execute(ctx context.Context, args []string) (*Commandeer, error) {
+// Execute executes the command tree starting from the root command.
+// The args are usually filled with os.Args[1:].
+func (r *Exec) Execute(ctx context.Context, args []string) (*Commandeer, error) {
 	r.c.CobraCommand.SetArgs(args)
 	cobraCommand, err := r.c.CobraCommand.ExecuteContextC(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// Find the commandeer that was executed.
-	var find func(*cobra.Command, *Commandeer) *Commandeer
-	find = func(what *cobra.Command, in *Commandeer) *Commandeer {
-		if in.CobraCommand == what {
-			return in
+	var cd *Commandeer
+	if cobraCommand != nil {
+		if err == nil {
+			err = checkArgs(cobraCommand, args)
 		}
-		for _, in2 := range in.commandeers {
-			if found := find(what, in2); found != nil {
-				return found
+
+		// Find the commandeer that was executed.
+		var find func(*cobra.Command, *Commandeer) *Commandeer
+		find = func(what *cobra.Command, in *Commandeer) *Commandeer {
+			if in.CobraCommand == what {
+				return in
 			}
+			for _, in2 := range in.commandeers {
+				if found := find(what, in2); found != nil {
+					return found
+				}
+			}
+			return nil
 		}
+		cd = find(cobraCommand, r.c)
+	}
+
+	return cd, wrapErr(err)
+}
+
+// CommandError is returned when a command fails because of a user error (unknown command, invalid flag etc.).
+type CommandError struct {
+	Err error
+}
+
+func (e *CommandError) Error() string {
+	return fmt.Sprintf("command error: %v", e.Err)
+}
+
+// IsCommandError  reports whether any error in err's tree matches CommandError.
+func IsCommandError(err error) bool {
+	switch err.(type) {
+	case *CommandError:
+		return true
+	}
+	return errors.Is(err, &CommandError{})
+}
+
+func wrapErr(err error) error {
+	if err == nil {
 		return nil
 	}
-	return find(cobraCommand, r.c), nil
+
+	if rerr, ok := err.(*runErr); ok {
+		err = rerr.err
+	}
+
+	// All other errors are coming from Cobra.
+	return &CommandError{Err: err}
+}
+
+// Cobra only does suggestions for the root command.
+// See https://github.com/spf13/cobra/pull/1500
+func checkArgs(cmd *cobra.Command, args []string) error {
+	// no subcommand, always take args.
+	if !cmd.HasSubCommands() {
+		return nil
+	}
+
+	var commandName string
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			break
+		}
+		commandName = arg
+	}
+
+	if commandName == "" || cmd.Name() == commandName {
+		return nil
+	}
+
+	return fmt.Errorf("unknown command %q for %q%s", args[0], cmd.CommandPath(), findSuggestions(cmd, commandName))
+}
+
+func findSuggestions(cmd *cobra.Command, arg string) string {
+	if cmd.DisableSuggestions {
+		return ""
+	}
+	if cmd.SuggestionsMinimumDistance <= 0 {
+		cmd.SuggestionsMinimumDistance = 2
+	}
+	suggestionsString := ""
+	if suggestions := cmd.SuggestionsFor(arg); len(suggestions) > 0 {
+		suggestionsString += "\n\nDid you mean this?\n"
+		for _, s := range suggestions {
+			suggestionsString += fmt.Sprintf("\t%v\n", s)
+		}
+	}
+	return suggestionsString
 }
