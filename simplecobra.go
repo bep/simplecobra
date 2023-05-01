@@ -74,22 +74,27 @@ type Commandeer struct {
 }
 
 func (c *Commandeer) init() error {
-	// Start from the root and initialize all commands recursively.
-	// root is always set.
-	cd := c.Root
-	var initc func(*Commandeer) error
-	initc = func(cd *Commandeer) error {
+
+	// Collect all ancestors including self.
+	var ancestors []*Commandeer
+	{
+		cd := c
+		for cd != nil {
+			ancestors = append(ancestors, cd)
+			cd = cd.Parent
+		}
+	}
+
+	// Init all of them starting from the root.
+	for i := len(ancestors) - 1; i >= 0; i-- {
+		cd := ancestors[i]
 		if err := cd.Command.Init(cd); err != nil {
 			return err
 		}
-		for _, cc := range cd.commandeers {
-			if err := initc(cc); err != nil {
-				return err
-			}
-		}
-		return nil
 	}
-	return initc(cd)
+
+	return nil
+
 }
 
 type runErr struct {
