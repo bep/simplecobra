@@ -76,6 +76,22 @@ func TestSimplecobra(t *testing.T) {
 
 }
 
+func TestInitAncestorsOnly(t *testing.T) {
+	c := qt.New(t)
+
+	rootCmd := testCommands()
+	x, err := simplecobra.New(rootCmd)
+	c.Assert(err, qt.IsNil)
+	args := []string{"bar", "baz", "--persistentFlagName", "baz_persistent"}
+	cd3, err := x.Execute(context.Background(), args)
+	c.Assert(err, qt.IsNil)
+	c.Assert(cd3.Command.Name(), qt.Equals, "baz")
+	c.Assert(rootCmd.isInit, qt.IsTrue)
+	c.Assert(rootCmd.commands[0].(*lvl1Command).isInit, qt.IsFalse)
+	c.Assert(rootCmd.commands[1].(*lvl1Command).isInit, qt.IsTrue)
+	c.Assert(cd3.Command.(*lvl2Command).isInit, qt.IsTrue)
+}
+
 func TestErrors(t *testing.T) {
 	c := qt.New(t)
 
@@ -142,7 +158,8 @@ func Example() {
 }
 
 type rootCommand struct {
-	name string
+	name   string
+	isInit bool
 
 	// Flags
 	persistentFlagName string
@@ -164,6 +181,7 @@ func (c *rootCommand) Commands() []simplecobra.Commander {
 }
 
 func (c *rootCommand) Init(*simplecobra.Commandeer) error {
+	c.isInit = true
 	c.persistentFlagNameC = c.persistentFlagName + "_rootCommand_compiled"
 	c.localFlagNameC = c.localFlagName + "_rootCommand_compiled"
 	return nil
@@ -189,7 +207,8 @@ func (c *rootCommand) WithCobraCommand(cmd *cobra.Command) error {
 }
 
 type lvl1Command struct {
-	name string
+	name   string
+	isInit bool
 
 	localFlagName  string
 	localFlagNameC string
@@ -206,6 +225,7 @@ func (c *lvl1Command) Commands() []simplecobra.Commander {
 }
 
 func (c *lvl1Command) Init(cd *simplecobra.Commandeer) error {
+	c.isInit = true
 	c.localFlagNameC = c.localFlagName + "_lvl1Command_compiled"
 	c.rootCmd = cd.Root.Command.(*rootCommand)
 	return nil
@@ -228,6 +248,7 @@ func (c *lvl1Command) WithCobraCommand(cmd *cobra.Command) error {
 
 type lvl2Command struct {
 	name          string
+	isInit        bool
 	localFlagName string
 
 	ctx       context.Context
@@ -240,6 +261,7 @@ func (c *lvl2Command) Commands() []simplecobra.Commander {
 }
 
 func (c *lvl2Command) Init(cd *simplecobra.Commandeer) error {
+	c.isInit = true
 	c.rootCmd = cd.Root.Command.(*rootCommand)
 	c.parentCmd = cd.Parent.Command.(*lvl1Command)
 	return nil
