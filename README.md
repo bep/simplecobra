@@ -7,14 +7,15 @@ So, [Cobra](https://github.com/spf13/cobra) is a Go CLI library with a feature s
 I welcome suggestions to improve/simplify this further, but the core idea is that the command graph gets built in one go with a tree of struct pointers implementing a simple `Commander` interface:
 
 ```go
+// Commander is the interface that must be implemented by all commands.
 type Commander interface {
 	// The name of the command.
 	Name() string
 
 	// The command execution.
-	Run(ctx context.Context, args []string) error
+	Run(ctx context.Context, cd *Commandeer, args []string) error
 
-	// Init called on all commands in this tree, before execution, starting from the root.
+	// Init called on all ancestors and the executing command itself, before execution, starting from the root.
 	// This is the place to evaluate flags and set up the command.
 	Init(*Commandeer) error
 
