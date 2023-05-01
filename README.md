@@ -12,7 +12,7 @@ type Commander interface {
 	Name() string
 
 	// The command execution.
-	Run(ctx context.Context, args []string) error
+	Run(ctx context.Context, cd *simplecobra.Commandeer, args []string) error
 
 	// Init called on all commands in this tree, before execution, starting from the root.
 	// This is the place to evaluate flags and set up the command.

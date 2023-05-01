@@ -191,7 +191,7 @@ func (c *rootCommand) Name() string {
 	return c.name
 }
 
-func (c *rootCommand) Run(ctx context.Context, args []string) error {
+func (c *rootCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, args []string) error {
 	c.ctx = ctx
 	return nil
 }
@@ -235,7 +235,7 @@ func (c *lvl1Command) Name() string {
 	return c.name
 }
 
-func (c *lvl1Command) Run(ctx context.Context, args []string) error {
+func (c *lvl1Command) Run(ctx context.Context, cd *simplecobra.Commandeer, args []string) error {
 	c.ctx = ctx
 	return nil
 }
@@ -271,7 +271,7 @@ func (c *lvl2Command) Name() string {
 	return c.name
 }
 
-func (c *lvl2Command) Run(ctx context.Context, args []string) error {
+func (c *lvl2Command) Run(ctx context.Context, cd *simplecobra.Commandeer, args []string) error {
 	c.ctx = ctx
 	return nil
 }

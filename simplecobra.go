@@ -15,7 +15,7 @@ type Commander interface {
 	Name() string
 
 	// The command execution.
-	Run(ctx context.Context, args []string) error
+	Run(ctx context.Context, cd *Commandeer, args []string) error
 
 	// Init called on all commands in this tree, before execution, starting from the root.
 	// This is the place to evaluate flags and set up the command.
@@ -109,7 +109,7 @@ func (c *Commandeer) compile() error {
 	c.CobraCommand = &cobra.Command{
 		Use: c.Command.Name(),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := c.Command.Run(cmd.Context(), args); err != nil {
+			if err := c.Command.Run(cmd.Context(), c, args); err != nil {
 				return &runErr{err: err}
 			}
 			return nil
