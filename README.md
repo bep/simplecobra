@@ -62,3 +62,13 @@ func main() {
 	fmt.Printf("Executed %s.%s.%s with localFlagName %s and and persistentFlagName %s.\n", root.name, lvl1.name, lvl2.name, lvl2.localFlagName, root.persistentFlagName)
 }
 ```
+
+
+## Differences to Cobra
+
+You have access to the `*cobra.Command` pointer so there's not much you cannot do with this project compared to the more low-level Cobra, but there's one small, but imortant difference:
+
+Cobra only treats the first level of misspelled commands as an `unknown command` with "Did you mean this?" suggestions, see [see this issue](https://github.com/spf13/cobra/pull/1500) for more context. The reason this is, is because of the ambiguity between sub command names and command arguments, but that is throwing away a very useful feature for not a very good reason. We recently rewrote [Hugo's CLI](https://github.com/gohugoio/hugo) using this poackage, and found only one sub command that needed to be adjusted to avoid this ambiguity.
+
+
+
