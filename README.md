@@ -1,5 +1,6 @@
 [![Tests on Linux, MacOS and Windows](https://github.com/bep/simplecobra/workflows/Test/badge.svg)](https://github.com/bep/simplecobra/actions?query=workflow:Test)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bep/simplecobra)](https://goreportcard.com/report/github.com/bep/simplecobra)
+[![codecov](https://codecov.io/gh/bep/simplecobra/branch/master/graph/badge.svg)](https://codecov.io/gh/bep/simplecobra)
 [![GoDoc](https://godoc.org/github.com/bep/simplecobra?status.svg)](https://godoc.org/github.com/bep/simplecobra)
 
 So, [Cobra](https://github.com/spf13/cobra) is a Go CLI library with a feature set that's hard to resist for bigger applications (autocomplete, docs auto generation etc.). But it's also rather complex to use beyond the simplest of applications. This package is built to aid rewriting [Hugo's](https://github.com/gohugoio/hugo) commands package to something that's easier to understand and maintain.
