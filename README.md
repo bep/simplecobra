@@ -3,7 +3,7 @@
 [![codecov](https://codecov.io/gh/bep/simplecobra/branch/master/graph/badge.svg)](https://codecov.io/gh/bep/simplecobra)
 [![GoDoc](https://godoc.org/github.com/bep/simplecobra?status.svg)](https://godoc.org/github.com/bep/simplecobra)
 
-So, [Cobra](https://github.com/spf13/cobra) is a Go CLI library with a feature set that's hard to resist for bigger applications (autocomplete, docs auto generation etc.). But it's also rather complex to use beyond the simplest of applications. This package is built to aid rewriting [Hugo's](https://github.com/gohugoio/hugo) commands package to something that's easier to understand and maintain.
+So, [Cobra](https://github.com/spf13/cobra) is a Go CLI library with a feature set that's hard to resist for bigger applications (autocompletion, docs and man pages auto generation etc.). But it's also complex to use beyond the simplest of applications. This package was built to help rewriting [Hugo's](https://github.com/gohugoio/hugo) commands package to something that's easier to understand and maintain.
 
 I welcome suggestions to improve/simplify this further, but the core idea is that the command graph gets built in one go with a tree of struct pointers implementing a simple `Commander` interface:
 
@@ -70,7 +70,7 @@ func main() {
 
 You have access to the `*cobra.Command` pointer so there's not much you cannot do with this project compared to the more low-level Cobra, but there's one small, but imortant difference:
 
-Cobra only treats the first level of misspelled commands as an `unknown command` with "Did you mean this?" suggestions, see [see this issue](https://github.com/spf13/cobra/pull/1500) for more context. The reason this is, is because of the ambiguity between sub command names and command arguments, but that is throwing away a very useful feature for not a very good reason. We recently rewrote [Hugo's CLI](https://github.com/gohugoio/hugo) using this poackage, and found only one sub command that needed to be adjusted to avoid this ambiguity.
+Cobra only treats the first level of misspelled commands as an `unknown command` with "Did you mean this?" suggestions, see [see this issue](https://github.com/spf13/cobra/pull/1500) for more context. The reason this is, is because of the ambiguity between sub command names and command arguments, but that is throwing away a very useful feature for a not very good reason. We recently rewrote [Hugo's CLI](https://github.com/gohugoio/hugo) using this poackage, and found only one sub command that needed to be adjusted to avoid this ambiguity.
 
 
 
