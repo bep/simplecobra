@@ -2,8 +2,10 @@ package simplecobra_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/bep/simplecobra"
@@ -121,6 +123,24 @@ func TestErrors(t *testing.T) {
 		c.Assert(simplecobra.IsCommandError(err), qt.Equals, true)
 	})
 
+	c.Run("disable suggestions", func(c *qt.C) {
+		r := &rootCommand{name: "root",
+			commands: []simplecobra.Commander{
+				&lvl1Command{name: "foo", disableSuggestions: true,
+					commands: []simplecobra.Commander{
+						&lvl2Command{name: "bar"},
+					},
+				},
+			},
+		}
+		x, err := simplecobra.New(r)
+		c.Assert(err, qt.IsNil)
+		_, err = x.Execute(context.Background(), []string{"foo", "bars"})
+		c.Assert(err, qt.Not(qt.IsNil))
+		c.Assert(err.Error(), qt.Contains, "unknown")
+		c.Assert(err.Error(), qt.Not(qt.Contains), "Did you mean this?")
+	})
+
 	c.Run("unknown flag", func(c *qt.C) {
 		x, err := simplecobra.New(testCommands())
 		c.Assert(err, qt.IsNil)
@@ -129,6 +149,63 @@ func TestErrors(t *testing.T) {
 		c.Assert(err.Error(), qt.Contains, "unknown")
 		c.Assert(simplecobra.IsCommandError(err), qt.Equals, true)
 	})
+
+	c.Run("fail New in root command", func(c *qt.C) {
+		r := &rootCommand{name: "root", failWithCobraCommand: true,
+			commands: []simplecobra.Commander{
+				&lvl1Command{name: "foo"},
+			},
+		}
+		_, err := simplecobra.New(r)
+		c.Assert(err, qt.IsNotNil)
+	})
+
+	c.Run("fail New in sub command", func(c *qt.C) {
+		r := &rootCommand{name: "root",
+			commands: []simplecobra.Commander{
+				&lvl1Command{name: "foo", failWithCobraCommand: true},
+			},
+		}
+		_, err := simplecobra.New(r)
+		c.Assert(err, qt.IsNotNil)
+	})
+
+	c.Run("fail run root command", func(c *qt.C) {
+		r := &rootCommand{name: "root", failRun: true,
+			commands: []simplecobra.Commander{
+				&lvl1Command{name: "foo"},
+			},
+		}
+		x, err := simplecobra.New(r)
+		c.Assert(err, qt.IsNil)
+		_, err = x.Execute(context.Background(), nil)
+		c.Assert(err, qt.IsNotNil)
+		c.Assert(err.Error(), qt.Equals, "failRun")
+	})
+
+	c.Run("fail init sub command", func(c *qt.C) {
+		r := &rootCommand{name: "root",
+			commands: []simplecobra.Commander{
+				&lvl1Command{name: "foo", failInit: true},
+			},
+		}
+		x, err := simplecobra.New(r)
+		c.Assert(err, qt.IsNil)
+		_, err = x.Execute(context.Background(), []string{"foo"})
+		c.Assert(err, qt.IsNotNil)
+
+	})
+
+}
+
+func TestIsCommandError(t *testing.T) {
+	c := qt.New(t)
+	cerr := &simplecobra.CommandError{Err: errors.New("foo")}
+	c.Assert(simplecobra.IsCommandError(os.ErrNotExist), qt.Equals, false)
+	c.Assert(simplecobra.IsCommandError(nil), qt.Equals, false)
+	c.Assert(simplecobra.IsCommandError(errors.New("foo")), qt.Equals, false)
+	c.Assert(simplecobra.IsCommandError(cerr), qt.Equals, true)
+	c.Assert(simplecobra.IsCommandError(fmt.Errorf("foo: %w", cerr)), qt.Equals, true)
 
 }
 
@@ -176,9 +253,11 @@ type rootCommand struct {
 	localFlagNameC      string
 
 	// For testing.
-	ctx        context.Context
-	initThis   *simplecobra.Commandeer
-	initRunner *simplecobra.Commandeer
+	ctx                  context.Context
+	initThis             *simplecobra.Commandeer
+	initRunner           *simplecobra.Commandeer
+	failWithCobraCommand bool
+	failRun              bool
 
 	// Sub commands.
 	commands []simplecobra.Commander
@@ -202,11 +281,17 @@ func (c *rootCommand) Name() string {
 }
 
 func (c *rootCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, args []string) error {
+	if c.failRun {
+		return errors.New("failRun")
+	}
 	c.ctx = ctx
 	return nil
 }
 
 func (c *rootCommand) WithCobraCommand(cmd *cobra.Command) error {
+	if c.failWithCobraCommand {
+		return errors.New("failWithCobraCommand")
+	}
 	localFlags := cmd.Flags()
 	persistentFlags := cmd.PersistentFlags()
 
@@ -223,6 +308,10 @@ type lvl1Command struct {
 	localFlagName  string
 	localFlagNameC string
 
+	failInit             bool
+	failWithCobraCommand bool
+	disableSuggestions   bool
+
 	rootCmd *rootCommand
 
 	commands []simplecobra.Commander
@@ -235,6 +324,9 @@ func (c *lvl1Command) Commands() []simplecobra.Commander {
 }
 
 func (c *lvl1Command) Init(this, runner *simplecobra.Commandeer) error {
+	if c.failInit {
+		return fmt.Errorf("failInit")
+	}
 	c.isInit = true
 	c.localFlagNameC = c.localFlagName + "_lvl1Command_compiled"
 	c.rootCmd = this.Root.Command.(*rootCommand)
@@ -251,6 +343,10 @@ func (c *lvl1Command) Run(ctx context.Context, cd *simplecobra.Commandeer, args 
 }
 
 func (c *lvl1Command) WithCobraCommand(cmd *cobra.Command) error {
+	if c.failWithCobraCommand {
+		return errors.New("failWithCobraCommand")
+	}
+	cmd.DisableSuggestions = c.disableSuggestions
 	localFlags := cmd.Flags()
 	localFlags.StringVar(&c.localFlagName, "localFlagName", "", "set localFlagName for lvl1Command")
 	return nil

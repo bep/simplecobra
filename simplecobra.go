@@ -99,11 +99,7 @@ func (c *Commandeer) init() error {
 }
 
 type runErr struct {
-	err error
-}
-
-func (r *runErr) Error() string {
-	return fmt.Sprintf("run error: %v", r.err)
+	error
 }
 
 func (c *Commandeer) compile() error {
@@ -115,7 +111,7 @@ func (c *Commandeer) compile() error {
 		Use: fmt.Sprintf("%s %s", c.Command.Name(), useCommandFlagsArgs),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := c.Command.Run(cmd.Context(), c, args); err != nil {
-				return &runErr{err: err}
+				return &runErr{error: err}
 			}
 			return nil
 		},
@@ -128,7 +124,9 @@ func (c *Commandeer) compile() error {
 	}
 
 	// This is where the flags, short and long description etc. are added
-	c.Command.WithCobraCommand(c.CobraCommand)
+	if err := c.Command.WithCobraCommand(c.CobraCommand); err != nil {
+		return err
+	}
 
 	// Add commands recursively.
 	for _, cc := range c.commandeers {
@@ -149,6 +147,10 @@ type Exec struct {
 // Execute executes the command tree starting from the root command.
 // The args are usually filled with os.Args[1:].
 func (r *Exec) Execute(ctx context.Context, args []string) (*Commandeer, error) {
+	if args == nil {
+		// Cobra falls back to os.Args[1:] if args is nil.
+		args = []string{}
+	}
 	r.c.CobraCommand.SetArgs(args)
 	cobraCommand, err := r.c.CobraCommand.ExecuteContextC(ctx)
 	var cd *Commandeer
@@ -177,20 +179,24 @@ func (r *Exec) Execute(ctx context.Context, args []string) (*Commandeer, error) 
 }
 
 // CommandError is returned when a command fails because of a user error (unknown command, invalid flag etc.).
+// All other errors comes from the execution of the command.
 type CommandError struct {
 	Err error
 }
 
+// Error implements error.
 func (e *CommandError) Error() string {
 	return fmt.Sprintf("command error: %v", e.Err)
 }
 
+// Is reports whether e is of type *CommandError.
+func (*CommandError) Is(e error) bool {
+	_, ok := e.(*CommandError)
+	return ok
+}
+
 // IsCommandError  reports whether any error in err's tree matches CommandError.
 func IsCommandError(err error) bool {
-	switch err.(type) {
-	case *CommandError:
-		return true
-	}
 	return errors.Is(err, &CommandError{})
 }
 
@@ -200,7 +206,7 @@ func wrapErr(err error) error {
 	}
 
 	if rerr, ok := err.(*runErr); ok {
-		err = rerr.err
+		return rerr.error
 	}
 
 	// All other errors are coming from Cobra.
@@ -233,9 +239,6 @@ func checkArgs(cmd *cobra.Command, args []string) error {
 func findSuggestions(cmd *cobra.Command, arg string) string {
 	if cmd.DisableSuggestions {
 		return ""
-	}
-	if cmd.SuggestionsMinimumDistance <= 0 {
-		cmd.SuggestionsMinimumDistance = 2
 	}
 	suggestionsString := ""
 	if suggestions := cmd.SuggestionsFor(arg); len(suggestions) > 0 {
