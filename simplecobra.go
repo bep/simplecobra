@@ -18,8 +18,9 @@ type Commander interface {
 	Run(ctx context.Context, cd *Commandeer, args []string) error
 
 	// Init called on all ancestors and the executing command itself, before execution, starting from the root.
-	// This is the place to evaluate flags and set up the command.
-	Init(*Commandeer) error
+	// This is the place to evaluate flags and set up the this Commandeer.
+	// The runner Commandeer holds the currently running command, which will be Init last.
+	Init(this, runner *Commandeer) error
 
 	// WithCobraCommand is called when the cobra command is created.
 	// This is where the flags, short and long description etc. are added.
@@ -88,7 +89,7 @@ func (c *Commandeer) init() error {
 	// Init all of them starting from the root.
 	for i := len(ancestors) - 1; i >= 0; i-- {
 		cd := ancestors[i]
-		if err := cd.Command.Init(cd); err != nil {
+		if err := cd.Command.Init(cd, c); err != nil {
 			return err
 		}
 	}
@@ -106,8 +107,12 @@ func (r *runErr) Error() string {
 }
 
 func (c *Commandeer) compile() error {
+	useCommandFlagsArgs := "[command] [flags]"
+	if len(c.commandeers) == 0 {
+		useCommandFlagsArgs = "[flags] [args]"
+	}
 	c.CobraCommand = &cobra.Command{
-		Use: c.Command.Name(),
+		Use: fmt.Sprintf("%s %s", c.Command.Name(), useCommandFlagsArgs),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := c.Command.Run(cmd.Context(), c, args); err != nil {
 				return &runErr{err: err}
