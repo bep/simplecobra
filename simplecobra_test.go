@@ -47,6 +47,8 @@ func TestSimpleCobra(t *testing.T) {
 	c.Assert(tc.persistentFlagName, qt.Equals, "root_persistent")
 	c.Assert(tc.persistentFlagNameC, qt.Equals, "root_persistent_rootCommand_compiled")
 	c.Assert(tc.localFlagNameC, qt.Equals, "root_local_rootCommand_compiled")
+	c.Assert(tc.initRunner, qt.Equals, cd)
+	c.Assert(tc.initThis, qt.Equals, cd)
 
 	// Execute a level 1 command.
 	// This may not be very realistic, but it works. The common use case for a CLI app is to run one command and then exit.
@@ -62,6 +64,8 @@ func TestSimpleCobra(t *testing.T) {
 	c.Assert(tc2.localFlagNameC, qt.Equals, "bar_local_lvl1Command_compiled")
 	c.Assert(tc.persistentFlagName, qt.Equals, "bar_persistent")
 	c.Assert(tc.persistentFlagNameC, qt.Equals, "bar_persistent_rootCommand_compiled")
+	c.Assert(tc2.rootCmd.initRunner, qt.Equals, cd2)
+	c.Assert(tc2.rootCmd.initThis, qt.Equals, cd2.Root)
 
 	// Execute a level 2 command.
 	args = []string{"bar", "baz", "--persistentFlagName", "baz_persistent"}
@@ -73,6 +77,8 @@ func TestSimpleCobra(t *testing.T) {
 	c.Assert(tc3.rootCmd, qt.Equals, rootCmd)
 	c.Assert(tc3.parentCmd, qt.Equals, tc2)
 	c.Assert(tc3.ctx, qt.Equals, ctx)
+	c.Assert(tc3.rootCmd.initRunner, qt.Equals, cd3)
+	c.Assert(tc3.rootCmd.initThis, qt.Equals, cd3.Root)
 
 }
 
@@ -170,7 +176,9 @@ type rootCommand struct {
 	localFlagNameC      string
 
 	// For testing.
-	ctx context.Context
+	ctx        context.Context
+	initThis   *simplecobra.Commandeer
+	initRunner *simplecobra.Commandeer
 
 	// Sub commands.
 	commands []simplecobra.Commander
@@ -180,10 +188,12 @@ func (c *rootCommand) Commands() []simplecobra.Commander {
 	return c.commands
 }
 
-func (c *rootCommand) Init(*simplecobra.Commandeer) error {
+func (c *rootCommand) Init(this, runner *simplecobra.Commandeer) error {
 	c.isInit = true
 	c.persistentFlagNameC = c.persistentFlagName + "_rootCommand_compiled"
 	c.localFlagNameC = c.localFlagName + "_rootCommand_compiled"
+	c.initThis = this
+	c.initRunner = runner
 	return nil
 }
 
@@ -224,10 +234,10 @@ func (c *lvl1Command) Commands() []simplecobra.Commander {
 	return c.commands
 }
 
-func (c *lvl1Command) Init(cd *simplecobra.Commandeer) error {
+func (c *lvl1Command) Init(this, runner *simplecobra.Commandeer) error {
 	c.isInit = true
 	c.localFlagNameC = c.localFlagName + "_lvl1Command_compiled"
-	c.rootCmd = cd.Root.Command.(*rootCommand)
+	c.rootCmd = this.Root.Command.(*rootCommand)
 	return nil
 }
 
@@ -260,10 +270,10 @@ func (c *lvl2Command) Commands() []simplecobra.Commander {
 	return nil
 }
 
-func (c *lvl2Command) Init(cd *simplecobra.Commandeer) error {
+func (c *lvl2Command) Init(this, runner *simplecobra.Commandeer) error {
 	c.isInit = true
-	c.rootCmd = cd.Root.Command.(*rootCommand)
-	c.parentCmd = cd.Parent.Command.(*lvl1Command)
+	c.rootCmd = this.Root.Command.(*rootCommand)
+	c.parentCmd = this.Parent.Command.(*lvl1Command)
 	return nil
 }
 

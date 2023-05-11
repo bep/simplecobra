@@ -16,8 +16,9 @@ type Commander interface {
 	Run(ctx context.Context, cd *Commandeer, args []string) error
 
 	// Init called on all ancestors and the executing command itself, before execution, starting from the root.
-	// This is the place to evaluate flags and set up the command.
-	Init(*Commandeer) error
+	// This is the place to evaluate flags and set up the this Commandeer.
+	// The runner Commandeer holds the currently running command, which will be Init last.
+	Init(this, runner *Commandeer) error
 
 	// WithCobraCommand is called when the cobra command is created.
 	// This is where the flags, short and long description etc. are added.
