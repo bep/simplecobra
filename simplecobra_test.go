@@ -10,7 +10,6 @@ import (
 
 	"github.com/bep/simplecobra"
 	qt "github.com/frankban/quicktest"
-	"github.com/spf13/cobra"
 )
 
 func testCommands() *rootCommand {
@@ -267,7 +266,7 @@ func (c *rootCommand) Commands() []simplecobra.Commander {
 	return c.commands
 }
 
-func (c *rootCommand) Init(this, runner *simplecobra.Commandeer) error {
+func (c *rootCommand) PreRun(this, runner *simplecobra.Commandeer) error {
 	c.isInit = true
 	c.persistentFlagNameC = c.persistentFlagName + "_rootCommand_compiled"
 	c.localFlagNameC = c.localFlagName + "_rootCommand_compiled"
@@ -288,10 +287,11 @@ func (c *rootCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, args 
 	return nil
 }
 
-func (c *rootCommand) WithCobraCommand(cmd *cobra.Command) error {
+func (c *rootCommand) Init(cd *simplecobra.Commandeer) error {
 	if c.failWithCobraCommand {
 		return errors.New("failWithCobraCommand")
 	}
+	cmd := cd.CobraCommand
 	localFlags := cmd.Flags()
 	persistentFlags := cmd.PersistentFlags()
 
@@ -323,7 +323,7 @@ func (c *lvl1Command) Commands() []simplecobra.Commander {
 	return c.commands
 }
 
-func (c *lvl1Command) Init(this, runner *simplecobra.Commandeer) error {
+func (c *lvl1Command) PreRun(this, runner *simplecobra.Commandeer) error {
 	if c.failInit {
 		return fmt.Errorf("failInit")
 	}
@@ -342,10 +342,11 @@ func (c *lvl1Command) Run(ctx context.Context, cd *simplecobra.Commandeer, args 
 	return nil
 }
 
-func (c *lvl1Command) WithCobraCommand(cmd *cobra.Command) error {
+func (c *lvl1Command) Init(cd *simplecobra.Commandeer) error {
 	if c.failWithCobraCommand {
 		return errors.New("failWithCobraCommand")
 	}
+	cmd := cd.CobraCommand
 	cmd.DisableSuggestions = c.disableSuggestions
 	localFlags := cmd.Flags()
 	localFlags.StringVar(&c.localFlagName, "localFlagName", "", "set localFlagName for lvl1Command")
@@ -366,7 +367,7 @@ func (c *lvl2Command) Commands() []simplecobra.Commander {
 	return nil
 }
 
-func (c *lvl2Command) Init(this, runner *simplecobra.Commandeer) error {
+func (c *lvl2Command) PreRun(this, runner *simplecobra.Commandeer) error {
 	c.isInit = true
 	c.rootCmd = this.Root.Command.(*rootCommand)
 	c.parentCmd = this.Parent.Command.(*lvl1Command)
@@ -382,7 +383,8 @@ func (c *lvl2Command) Run(ctx context.Context, cd *simplecobra.Commandeer, args 
 	return nil
 }
 
-func (c *lvl2Command) WithCobraCommand(cmd *cobra.Command) error {
+func (c *lvl2Command) Init(cd *simplecobra.Commandeer) error {
+	cmd := cd.CobraCommand
 	localFlags := cmd.Flags()
 	localFlags.StringVar(&c.localFlagName, "localFlagName", "", "set localFlagName for lvl2Command")
 	return nil

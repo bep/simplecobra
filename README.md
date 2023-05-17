@@ -13,17 +13,17 @@ type Commander interface {
 	// The name of the command.
 	Name() string
 
+	// Init is called when the cobra command is created.
+	// This is where the flags, short and long description etc. can be added.
+	Init(*Commandeer) error
+
+	// PreRun called on all ancestors and the executing command itself, before execution, starting from the root.
+	// This is the place to evaluate flags and set up the this Commandeer.
+	// The runner Commandeer holds the currently running command, which will be PreRun last.
+	PreRun(this, runner *Commandeer) error
+
 	// The command execution.
 	Run(ctx context.Context, cd *Commandeer, args []string) error
-
-	// Init called on all ancestors and the executing command itself, before execution, starting from the root.
-	// This is the place to evaluate flags and set up the this Commandeer.
-	// The runner Commandeer holds the currently running command, which will be Init last.
-	Init(this, runner *Commandeer) error
-
-	// WithCobraCommand is called when the cobra command is created.
-	// This is where the flags, short and long description etc. are added.
-	WithCobraCommand(*cobra.Command) error
 
 	// Commands returns the sub commands, if any.
 	Commands() []Commander
