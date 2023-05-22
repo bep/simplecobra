@@ -107,7 +107,7 @@ func TestErrors(t *testing.T) {
 		c.Assert(err, qt.IsNil)
 		_, err = x.Execute(context.Background(), []string{"fooo"})
 		c.Assert(err, qt.Not(qt.IsNil))
-		c.Assert(err.Error(), qt.Contains, "unknown")
+		c.Assert(err.Error(), qt.Contains, "unknown command \"fooo\"")
 		c.Assert(err.Error(), qt.Contains, "Did you mean this?")
 		c.Assert(simplecobra.IsCommandError(err), qt.Equals, true)
 	})
@@ -136,7 +136,7 @@ func TestErrors(t *testing.T) {
 		c.Assert(err, qt.IsNil)
 		_, err = x.Execute(context.Background(), []string{"foo", "bars"})
 		c.Assert(err, qt.Not(qt.IsNil))
-		c.Assert(err.Error(), qt.Contains, "unknown")
+		c.Assert(err.Error(), qt.Contains, `command error: unknown command "bars" for "root foo"`)
 		c.Assert(err.Error(), qt.Not(qt.Contains), "Did you mean this?")
 	})
 

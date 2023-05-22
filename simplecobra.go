@@ -233,7 +233,7 @@ func checkArgs(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	return fmt.Errorf("unknown command %q for %q%s", args[0], cmd.CommandPath(), findSuggestions(cmd, commandName))
+	return fmt.Errorf("unknown command %q for %q%s", args[1], cmd.CommandPath(), findSuggestions(cmd, commandName))
 }
 
 func findSuggestions(cmd *cobra.Command, arg string) string {
