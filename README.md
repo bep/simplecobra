@@ -30,7 +30,7 @@ type Commander interface {
 }
 ```
 
-The `Init` method allows for flag compilation, referencing the parent and root etc. If needed, the full Cobra command is still available for configuration in `WithCobraCommand`.
+The `Init` method allows for flag compilation, referencing the parent and root etc. If needed, the full Cobra command is still available.
 
 There's a runnable [example](https://pkg.go.dev/github.com/bep/simplecobra#example-package) in the documentation, but the gist of it is:
 
