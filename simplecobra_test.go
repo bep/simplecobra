@@ -83,6 +83,26 @@ func TestSimpleCobra(t *testing.T) {
 
 }
 
+func TestAliases(t *testing.T) {
+	c := qt.New(t)
+
+	rootCmd := &rootCommand{name: "root",
+		commands: []simplecobra.Commander{
+			&lvl1Command{name: "foo", aliases: []string{"f"},
+				commands: []simplecobra.Commander{
+					&lvl2Command{name: "bar"},
+				},
+			},
+		},
+	}
+
+	x, err := simplecobra.New(rootCmd)
+	c.Assert(err, qt.IsNil)
+	args := []string{"f"}
+	_, err = x.Execute(context.Background(), args)
+	c.Assert(err, qt.IsNil)
+}
+
 func TestInitAncestorsOnly(t *testing.T) {
 	c := qt.New(t)
 
@@ -305,6 +325,8 @@ type lvl1Command struct {
 	name   string
 	isInit bool
 
+	aliases []string
+
 	localFlagName  string
 	localFlagNameC string
 
@@ -348,6 +370,7 @@ func (c *lvl1Command) Init(cd *simplecobra.Commandeer) error {
 	}
 	cmd := cd.CobraCommand
 	cmd.DisableSuggestions = c.disableSuggestions
+	cmd.Aliases = c.aliases
 	localFlags := cmd.Flags()
 	localFlags.StringVar(&c.localFlagName, "localFlagName", "", "set localFlagName for lvl1Command")
 	return nil

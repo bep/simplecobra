@@ -233,6 +233,11 @@ func checkArgs(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	// Also check the aliases.
+	if cmd.HasAlias(commandName) {
+		return nil
+	}
+
 	return fmt.Errorf("unknown command %q for %q%s", args[1], cmd.CommandPath(), findSuggestions(cmd, commandName))
 }
 
