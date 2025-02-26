@@ -1,6 +1,6 @@
 module github.com/bep/simplecobra
 
-go 1.20
+go 1.23
 
 require (
 	github.com/frankban/quicktest v1.14.6
