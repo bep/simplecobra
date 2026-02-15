@@ -245,12 +245,12 @@ func findSuggestions(cmd *cobra.Command, arg string) string {
 	if cmd.DisableSuggestions {
 		return ""
 	}
-	suggestionsString := ""
+	var suggestionsString strings.Builder
 	if suggestions := cmd.SuggestionsFor(arg); len(suggestions) > 0 {
-		suggestionsString += "\n\nDid you mean this?\n"
+		suggestionsString.WriteString("\n\nDid you mean this?\n")
 		for _, s := range suggestions {
-			suggestionsString += fmt.Sprintf("\t%v\n", s)
+			suggestionsString.WriteString(fmt.Sprintf("\t%v\n", s))
 		}
 	}
-	return suggestionsString
+	return suggestionsString.String()
 }
