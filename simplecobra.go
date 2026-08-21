@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -87,8 +88,8 @@ func (c *Commandeer) init() error {
 	}
 
 	// Init all of them starting from the root.
-	for i := len(ancestors) - 1; i >= 0; i-- {
-		cd := ancestors[i]
+	for _, cd := range slices.Backward(ancestors) {
+
 		if err := cd.Command.PreRun(cd, c); err != nil {
 			return err
 		}
